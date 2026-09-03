@@ -102,14 +102,16 @@ class Product {
     return standaloneStock;
   }
 
-  /// Price display string (e.g. ₹60.00 – ₹100.00 or ₹120.00)
+  /// Price display string (e.g. ₹60 – ₹100 or ₹120.00)
   String get priceDisplay {
     if (hasVariants && variants.isNotEmpty) {
       final prices = variants.map((v) => v.price).toList()..sort();
       if (prices.first == prices.last) {
         return CurrencyFormatter.format(prices.first);
       }
-      return '${CurrencyFormatter.format(prices.first)} – ${CurrencyFormatter.format(prices.last)}';
+      final minStr = prices.first % 1 == 0 ? '₹${prices.first.toInt()}' : CurrencyFormatter.format(prices.first);
+      final maxStr = prices.last % 1 == 0 ? '₹${prices.last.toInt()}' : CurrencyFormatter.format(prices.last);
+      return '$minStr – $maxStr';
     }
     return CurrencyFormatter.format(standalonePrice ?? 0);
   }
