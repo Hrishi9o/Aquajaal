@@ -4,7 +4,8 @@ A production-grade, offline-first Point of Sale (POS), product catalog manager, 
 
 Built with a single Flutter codebase supporting:
 - **Web (Counter Laptop/PC & PWA)**: Full keyboard/mouse optimized UI with IndexedDB offline persistence, browser print dialog, Excel-compatible CSV export with UTF-8 BOM, and PDF invoice downloads.
-- **Mobile & Tablet (Android/iOS)**: Touch-optimized counter billing with local binary persistence, low-stock alerts, and system print spooler/Bluetooth printer support.
+- **Mobile & Tablet (Android/iOS)**: Touch-optimized counter billing with local binary persistence, low-stock alerts, system print spooler/Bluetooth printer support, and pre-compiled release APK.
+- **Real-Time Cloud Sync**: Automatic bidirectional sync across multiple family devices (counter PC, father's phone, brother's phone) using Firebase Realtime Database while retaining 100% offline-first reliability.
 
 ---
 
@@ -46,22 +47,23 @@ The application comes pre-seeded with the exact catalog and opening stock:
 
 ## Core Features
 
-### 1. Product Catalog Management
-- **Dedicated Catalog Screen**: Add, edit, and archive products and variants at any time without needing code changes.
-- **Price Immutability**: Editing a product's price only updates future sales; past invoices permanently retain the exact `priceAtSale` charged at the time of purchase.
-- **Archive / Soft Delete**: Discontinued products can be archived with one tap so they disappear from the POS billing grid while preserving historical invoices, sales reports, and stock movement logs intact. Archived products can be restored at any time.
-- **Permanent Delete**: Only permitted if a product has zero sales history, protected by a safety confirmation step.
-
-### 2. Point of Sale (POS) Billing & High-Speed Checkout
+### 1. Point of Sale (POS) Billing & High-Speed Checkout
 - **Instant Numeric Input**: Tactile `+` / `-` steppers, plus an on-screen **Numeric Keypad & Direct Typeable Field** allowing cashiers to type bulk quantities (e.g. 60 cases) in under 2 seconds.
+- **Adaptive Auto-Fitting Price Display**: Price ranges cleanly format as `₹60 – ₹100` (auto-scaling to fit any card or screen size without overflowing).
 - **Low-Stock Alert on Add**: When adding an item that is at or below its low-stock threshold, an immediate, high-contrast modal displays: *"Item has only X units left (Threshold: Y). Add to cart anyway?"* with Cancel or Confirm & Add options.
 - **Indian GST Tax Invoice Layout**:
   - Distributor details: Yashodhar Enterprises, Shirva Rishali Complex, Main Road, Shirva, Udupi Dist – 574116.
   - State & POS: Karnataka (State Code: 29).
   - Unique Sequential Invoice Numbers: `YE-YYYY-MMDD-XXXX` (e.g. `YE-2026-0903-0001`).
-  - Itemized table with HSN/SAC code 2201, unit price, quantity, taxable value, and line total.
+  - Itemized table with HSN code 2201, unit price, quantity, taxable value, and line total.
   - **Amount in Words**: Fully compliant Indian numbering format (*"Rupees Two Hundred and Eighty Only"*).
   - Print & Export actions: native browser print dialog on web, system print spooler & PDF share on mobile.
+
+### 2. Product Catalog Management
+- **Dedicated Catalog Screen**: Add, edit, and archive products and variants at any time without needing code changes.
+- **Price Immutability**: Editing a product's price only updates future sales; past invoices permanently retain the exact `priceAtSale` charged at the time of purchase.
+- **Archive / Soft Delete**: Discontinued products can be archived with one tap so they disappear from the POS billing grid while preserving historical invoices, sales reports, and stock movement logs intact. Archived products can be restored at any time.
+- **Permanent Delete**: Only permitted if a product has zero sales history, synchronized across local storage and cloud database.
 
 ### 3. Real-Time Stock Management & Audit Trail
 - **Live Inventory Overview**: On-hand counts for every jar variant and case SKU with color-coded badges (*Green: Healthy*, *Amber: Low Stock*, *Red: Out of Stock*).
@@ -72,7 +74,7 @@ The application comes pre-seeded with the exact catalog and opening stock:
 - **Audit Movement Log**: 100% traceable chronological ledger recording timestamp, type (*Inward Intake*, *Bill Sale*, *Adjustment*), quantity delta, previous balance → new balance, and invoice/batch reference.
 
 ### 4. Daily Sales Analytics Dashboard
-- **Period Filtering**: *Today*, *Yesterday*, *This Week*, *This Month*, *All Time*, and **Custom Date Range Picker**.
+- **Period Filtering**: *Today*, *Yesterday*, *Last 7 Days*, *This Month*, *All Time*, and **Custom Date Range Picker**.
 - **KPI Summary Cards**: Total Revenue (`₹#,##,##0.00`), Invoices Generated, Water Units Sold, Average Bill Value.
 - **Top 3 Products by Revenue**: Shows Name, Qty Sold, and formatted Revenue (`₹X,XXX.XX`).
 - **Top 3 Products by Quantity**: Shows Name, Units Sold, and Revenue (`₹X,XXX.XX`).
@@ -81,11 +83,17 @@ The application comes pre-seeded with the exact catalog and opening stock:
   - **Export to CSV**: Generates `YE_Invoices_YYYY-MM-DD_HHmmss.csv` encoded in UTF-8 with BOM (`\uFEFF`) so Microsoft Excel renders the `₹` symbol cleanly without corrupt characters.
   - **Sales Summary Report (PDF)**: Generates an A4 report with Yashodhar letterhead, summary KPIs, top-selling products table, and daily breakdown table.
 
-### 5. Settings & Theme Customization
+### 5. Multi-Device Real-Time Cloud Sync (Firebase RTDB)
+- Seamless real-time and background sync between the shop counter PC and mobile phones (e.g. Brother's phone & Father's phone).
+- **Offline-First Resilience**: If internet is unavailable at the counter, bills continue saving locally and sync to the cloud automatically as soon as connection is restored.
+- **Live Sync Indicator**: Visual header pill showing status: *Synced*, *Syncing*, *Offline*, or *Error*.
+
+### 6. Settings, Backup & Data Maintenance
 - Configurable distributor profile (name, address, phone, email, GSTIN).
 - Configurable default GST rate and global default low-stock threshold.
 - One-tap switch between **Light Theme** and **Dark Theme** (persisted).
-- **Factory Reset**: Clear database and restore initial demo catalog at any time.
+- **Clear Invoices Only**: Purge test transactions and reset invoice numbering to `#1` without touching your custom product catalog or store profile.
+- **Reset Factory Defaults**: Fully wipes local Hive boxes and remote Firebase RTDB collections, restoring the official Aquajaal demo catalog and opening stock with an interactive progress indicator.
 
 ---
 
@@ -96,52 +104,41 @@ The application comes pre-seeded with the exact catalog and opening stock:
 
 ---
 
-## Cross-Platform Local Persistence
+## Deployment & Running
 
-- **Database Engine**: **Hive** (`hive: ^2.2.3` + `hive_flutter: ^1.1.0`).
-- **Web Build**: Automatically stores all boxes inside the browser's native **IndexedDB** engine. Survives browser refresh, tab closing, computer reboots, and operates 100% offline.
-- **Mobile Build**: Stores high-performance binary boxes in the device's local application documents directory.
-- **PWA Ready**: Includes `web/manifest.json` configured for standalone installation on Windows/Mac/Android Chrome.
-
----
-
-## How to Run Locally
-
-### Prerequisites
-- Flutter SDK 3.32+ installed and added to `PATH`.
-- Chrome (for web) or an Android device/emulator.
-
-### 1. Run on Web (Browser)
-```bash
-cd e:\Aquajaal
-flutter pub get
-flutter run -d chrome
+### 1. Local Counter PC / Laptop (Recommended for Shop)
+Simply double-click the batch file in the project root:
+```cmd
+start_counter_app.bat
 ```
-*Or build and serve the production PWA bundle:*
+This launches the local production web server at `http://localhost:8080` and opens the POS counter in your default browser. Can be installed as a chromeless desktop PWA.
+
+### 2. Android Phone / Counter Tablet (Direct Sideload)
+The production-ready release APK is compiled and available in the project root:
+```
+Aquajaal-Counter-POS.apk
+```
+Copy it to any Android device via WhatsApp, Google Drive, or USB cable, tap to install, and run directly.
+
+To rebuild the APK from source:
 ```bash
-flutter build web --release
-python -m http.server 8080 --directory build/web
-# Open http://localhost:8080 in Chrome or Edge
+flutter build apk --release
 ```
 
-### 2. Run on Mobile (Android Emulator / Device)
+### 3. Deploy to Vercel (Cloud Hosting)
+The repository includes automated Vercel build configuration in `vercel.json`:
+1. Go to **[vercel.com/new](https://vercel.com/new)**.
+2. Import the `Hrishi9o/Aquajaal` repository.
+3. Click **Deploy**. Vercel will automatically install Flutter, build the web app, and deploy it to a fast global CDN.
+
+Or deploy via terminal using Vercel CLI:
 ```bash
-cd e:\Aquajaal
-flutter run -d android
+vercel login
+vercel --prod
 ```
 
-### 3. Run Automated Tests
+### 4. Run Automated Tests
 ```bash
 flutter test
 ```
-*Runs all unit and end-to-end integration tests (POS billing, tax calculations, number to words, stock auto-deduction, product management, and CSV export).*
-
----
-
-## Future: Multi-Device Sync (Roadmap)
-
-This application is designed specifically as a single-counter, offline-first application. For Yashodhar Enterprises' daily counter volume (a few hundred invoices per day), the local Hive embedded database provides instant, zero-latency response with zero monthly cloud bills.
-
-If a second counter, delivery vehicle tablet, or multi-location warehouse is ever needed in the future:
-1. An offline-first sync layer (such as **Firebase Cloud Firestore** or **Supabase**) can be added.
-2. The existing `LocalDbService` and `StockProvider` repositories already isolate all database access, allowing a background sync service to synchronize transactions whenever an internet connection is available without rewriting the core POS or UI code.
+Runs all 15+ automated end-to-end integration tests (POS billing, tax calculations, number to words, stock auto-deduction, invoice clearing, factory reset, product management, and CSV export).
