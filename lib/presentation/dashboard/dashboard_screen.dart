@@ -24,6 +24,7 @@ class DashboardScreen extends StatelessWidget {
     final salesProvider = context.watch<SalesProvider>();
     final stockProvider = context.watch<StockProvider>();
     final dateFormatter = DateFormat('dd MMM yyyy, hh:mm a');
+    final isMobile = MediaQuery.of(context).size.width < 650;
 
     final invoices = salesProvider.filteredInvoices;
     final lowStockItems = stockProvider.lowStockItems;
@@ -31,15 +32,15 @@ class DashboardScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(isMobile ? 12 : 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Persistent Low-Stock Alert Banner (if any items <= threshold)
             if (lowStockItems.isNotEmpty)
               Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                margin: const EdgeInsets.only(bottom: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   color: AppColors.warning.withAlpha(25),
                   borderRadius: BorderRadius.circular(12),
@@ -47,20 +48,20 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 24),
-                    const SizedBox(width: 12),
+                    const Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 22),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'Low Stock Alert: ${lowStockItems.length} item(s) need restocking',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.warning),
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.warning),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             lowStockItems.map((i) => '${i.displayName} (${i.currentStock} left)').join(', '),
-                            style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : AppColors.textPrimaryLight),
+                            style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : AppColors.textPrimaryLight),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -72,30 +73,30 @@ class DashboardScreen extends StatelessWidget {
               ),
 
             // Header with Period and Export Actions
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Daily Sales & Revenue Dashboard',
-                        style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Period: ${salesProvider.dateRangeLabel}',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary),
-                      ),
-                    ],
-                  ),
-                ),
-                // Export Buttons
-                Row(
+            LayoutBuilder(
+              builder: (context, hConstraints) {
+                final isNarrow = hConstraints.maxWidth < 560;
+                final titleCol = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Export to CSV Button
+                    Text(
+                      'Daily Sales & Revenue Dashboard',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        fontSize: isNarrow ? 17 : null,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Period: ${salesProvider.dateRangeLabel}',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                    ),
+                  ],
+                );
+                final exportRow = Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
                     OutlinedButton.icon(
                       onPressed: invoices.isEmpty
                           ? null
@@ -105,15 +106,12 @@ class DashboardScreen extends StatelessWidget {
                                 AppToast.success(context, '✓ CSV Invoices exported');
                               }
                             },
-                      icon: const Icon(Icons.file_download_outlined, size: 18),
-                      label: const Text('Export CSV'),
+                      icon: const Icon(Icons.file_download_outlined, size: 16),
+                      label: const Text('Export CSV', style: TextStyle(fontSize: 12)),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                       ),
                     ),
-                    const SizedBox(width: 8),
-
-                    // Generate PDF Report Button
                     ElevatedButton.icon(
                       onPressed: invoices.isEmpty
                           ? null
@@ -130,38 +128,46 @@ class DashboardScreen extends StatelessWidget {
                                 topProducts: salesProvider.topSellersByRevenue,
                               );
                             },
-                      icon: const Icon(Icons.picture_as_pdf_outlined, size: 18, color: Colors.white),
-                      label: const Text('Sales Report (PDF)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      icon: const Icon(Icons.picture_as_pdf_outlined, size: 16, color: Colors.white),
+                      label: const Text('PDF Report', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
                     ),
                   ],
-                ),
-              ],
+                );
+                if (isNarrow) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [titleCol, const SizedBox(height: 10), exportRow],
+                  );
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [Expanded(child: titleCol), const SizedBox(width: 12), exportRow],
+                );
+              },
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
 
             // Date Filter Tabs + Custom Range Picker
-            Row(
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
               children: [
-                Wrap(
-                  spacing: 6,
-                  children: [
-                    _filterChip(context, salesProvider, SalesDateFilter.today, 'Today'),
-                    _filterChip(context, salesProvider, SalesDateFilter.thisWeek, 'This Week'),
-                    _filterChip(context, salesProvider, SalesDateFilter.thisMonth, 'This Month'),
-                    _filterChip(context, salesProvider, SalesDateFilter.allTime, 'All Time'),
-                  ],
-                ),
-                const SizedBox(width: 10),
+                _filterChip(context, salesProvider, SalesDateFilter.today, 'Today'),
+                _filterChip(context, salesProvider, SalesDateFilter.thisWeek, 'This Week'),
+                _filterChip(context, salesProvider, SalesDateFilter.thisMonth, 'This Month'),
+                _filterChip(context, salesProvider, SalesDateFilter.allTime, 'All Time'),
                 ActionChip(
-                  avatar: const Icon(Icons.date_range_rounded, size: 16),
+                  avatar: const Icon(Icons.date_range_rounded, size: 14),
                   label: Text(
                     salesProvider.selectedFilter == SalesDateFilter.custom
                         ? '${DateFormat('dd/MM').format(salesProvider.customStartDate)} – ${DateFormat('dd/MM').format(salesProvider.customEndDate)}'
                         : 'Custom Range',
+                    style: const TextStyle(fontSize: 11),
                   ),
                   backgroundColor: salesProvider.selectedFilter == SalesDateFilter.custom
                       ? AppColors.primaryContainer
@@ -170,7 +176,7 @@ class DashboardScreen extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 14),
 
             // 4 KPI Summary Cards
             LayoutBuilder(
@@ -180,35 +186,35 @@ class DashboardScreen extends StatelessWidget {
                   crossAxisCount: isWide ? 4 : 2,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 14,
-                  mainAxisSpacing: 14,
-                  childAspectRatio: isWide ? 1.6 : 1.3,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: isWide ? 1.6 : 1.35,
                   children: [
                     KpiCard(
                       title: 'Total Revenue',
                       value: CurrencyFormatter.format(salesProvider.totalRevenue),
-                      subtitle: 'Gross billings for period',
+                      subtitle: 'Gross billings',
                       icon: Icons.currency_rupee_rounded,
                       accentColor: AppColors.primary,
                     ),
                     KpiCard(
                       title: 'Invoices Issued',
                       value: '${salesProvider.totalInvoicesCount}',
-                      subtitle: 'Counter sales transactions',
+                      subtitle: 'Transactions',
                       icon: Icons.receipt_long_rounded,
                       accentColor: AppColors.accentDark,
                     ),
                     KpiCard(
-                      title: 'Water Units Sold',
+                      title: 'Units Sold',
                       value: '${salesProvider.totalUnitsSold}',
-                      subtitle: 'Jars & Case Packs',
+                      subtitle: 'Jars & Packs',
                       icon: Icons.water_drop_rounded,
                       accentColor: AppColors.waterAqua,
                     ),
                     KpiCard(
-                      title: 'Average Order Value',
+                      title: 'Avg Order Value',
                       value: CurrencyFormatter.format(salesProvider.averageOrderValue),
-                      subtitle: 'Average bill size',
+                      subtitle: 'Per bill size',
                       icon: Icons.trending_up_rounded,
                       accentColor: AppColors.accentDark,
                     ),
@@ -216,69 +222,91 @@ class DashboardScreen extends StatelessWidget {
                 );
               },
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            // Top 3 by Revenue & Top 3 by Quantity
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _buildTop3Card(
-                    context,
-                    title: 'Top 3 Products by Revenue',
-                    items: salesProvider.top3ByRevenue,
-                    isRevenue: true,
-                    isDark: isDark,
+            // Top 3 by Revenue & Top 3 by Quantity (Stacked on mobile, row on tablet/desktop)
+            if (isMobile) ...[
+              _buildTop3Card(
+                context,
+                title: 'Top 3 Products by Revenue',
+                items: salesProvider.top3ByRevenue,
+                isRevenue: true,
+                isDark: isDark,
+              ),
+              const SizedBox(height: 12),
+              _buildTop3Card(
+                context,
+                title: 'Top 3 Products by Units Sold',
+                items: salesProvider.top3ByQuantity,
+                isRevenue: false,
+                isDark: isDark,
+              ),
+            ] else ...[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _buildTop3Card(
+                      context,
+                      title: 'Top 3 Products by Revenue',
+                      items: salesProvider.top3ByRevenue,
+                      isRevenue: true,
+                      isDark: isDark,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: _buildTop3Card(
-                    context,
-                    title: 'Top 3 Products by Units Sold',
-                    items: salesProvider.top3ByQuantity,
-                    isRevenue: false,
-                    isDark: isDark,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: _buildTop3Card(
+                      context,
+                      title: 'Top 3 Products by Units Sold',
+                      items: salesProvider.top3ByQuantity,
+                      isRevenue: false,
+                      isDark: isDark,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
+                ],
+              ),
+            ],
+            const SizedBox(height: 16),
 
             // Sales Revenue Bar Chart
             SalesRevenueBarChart(buckets: salesProvider.salesChartData),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
             // Invoice Drill-down List
             Card(
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
                 side: BorderSide(color: isDark ? AppColors.dividerDark : AppColors.dividerLight),
               ),
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(isMobile ? 12 : 18),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Period Invoices Drill-Down (${invoices.length})',
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        Flexible(
+                          child: Text(
+                            'Period Invoices (${invoices.length})',
+                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, fontSize: 14),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                         Text(
                           'Total: ${CurrencyFormatter.format(salesProvider.totalRevenue)}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 13),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     if (invoices.isEmpty)
                       const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
-                        child: Center(child: Text('No invoices found for this date filter')),
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Center(child: Text('No invoices found for this date filter', style: TextStyle(fontSize: 13))),
                       )
                     else
                       ListView.separated(
@@ -289,24 +317,24 @@ class DashboardScreen extends StatelessWidget {
                         itemBuilder: (context, index) {
                           final inv = invoices[index];
                           return ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
                             leading: Container(
-                              padding: const EdgeInsets.all(8),
+                              padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
                                 color: AppColors.primaryContainer,
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Icon(Icons.receipt_rounded, color: AppColors.primary, size: 20),
+                              child: const Icon(Icons.receipt_rounded, color: AppColors.primary, size: 18),
                             ),
                             title: Row(
                               children: [
                                 Text(
                                   inv.invoiceNumber,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: 6),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                                   decoration: BoxDecoration(
                                     color: inv.paymentMode == 'UPI'
                                         ? Colors.green.shade50
@@ -316,7 +344,7 @@ class DashboardScreen extends StatelessWidget {
                                   child: Text(
                                     inv.paymentMode,
                                     style: TextStyle(
-                                      fontSize: 10,
+                                      fontSize: 9,
                                       fontWeight: FontWeight.bold,
                                       color: inv.paymentMode == 'UPI' ? Colors.green.shade800 : Colors.blue.shade800,
                                     ),
@@ -325,12 +353,14 @@ class DashboardScreen extends StatelessWidget {
                               ],
                             ),
                             subtitle: Text(
-                              '${dateFormatter.format(inv.createdAt)} • ${inv.customerName ?? "Counter Customer"} • ${inv.totalUnits} items',
-                              style: const TextStyle(fontSize: 12),
+                              '${dateFormatter.format(inv.createdAt)} • ${inv.customerName ?? "Counter"} • ${inv.totalUnits} items',
+                              style: const TextStyle(fontSize: 11),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             trailing: Text(
                               CurrencyFormatter.format(inv.grandTotal),
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primary),
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primary),
                             ),
                             onTap: () {
                               Navigator.of(context).push(
@@ -361,12 +391,13 @@ class DashboardScreen extends StatelessWidget {
 
     return Card(
       elevation: 0,
+      margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         side: BorderSide(color: isDark ? AppColors.dividerDark : AppColors.dividerLight),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -374,20 +405,24 @@ class DashboardScreen extends StatelessWidget {
               children: [
                 Icon(
                   isRevenue ? Icons.leaderboard_rounded : Icons.pie_chart_rounded,
-                  size: 18,
+                  size: 16,
                   color: isRevenue ? AppColors.primary : AppColors.accentDark,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                Flexible(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold, fontSize: 13),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
-            const Divider(height: 20),
+            const Divider(height: 16),
             if (items.isEmpty)
               const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
+                padding: EdgeInsets.symmetric(vertical: 12),
                 child: Center(child: Text('No sales records in this period', style: TextStyle(fontSize: 12))),
               )
             else
@@ -396,12 +431,12 @@ class DashboardScreen extends StatelessWidget {
                 final item = entry.value;
 
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.only(bottom: 8),
                   child: Row(
                     children: [
                       Container(
-                        width: 22,
-                        height: 22,
+                        width: 20,
+                        height: 20,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: rank == 1
@@ -411,10 +446,10 @@ class DashboardScreen extends StatelessWidget {
                         ),
                         child: Text(
                           '$rank',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -427,11 +462,12 @@ class DashboardScreen extends StatelessWidget {
                             ),
                             Text(
                               '${item.quantity} units sold',
-                              style: const TextStyle(fontSize: 11, color: AppColors.textSecondaryLight),
+                              style: const TextStyle(fontSize: 10, color: AppColors.textSecondaryLight),
                             ),
                           ],
                         ),
                       ),
+                      const SizedBox(width: 6),
                       Text(
                         isRevenue
                             ? CurrencyFormatter.format(item.revenue)
@@ -456,7 +492,7 @@ class DashboardScreen extends StatelessWidget {
   ) {
     final isSelected = provider.selectedFilter == filter;
     return ChoiceChip(
-      label: Text(label),
+      label: Text(label, style: const TextStyle(fontSize: 11)),
       selected: isSelected,
       onSelected: (selected) {
         if (selected) provider.setFilter(filter);
@@ -465,7 +501,6 @@ class DashboardScreen extends StatelessWidget {
       labelStyle: TextStyle(
         color: isSelected ? Colors.white : null,
         fontWeight: FontWeight.bold,
-        fontSize: 12,
       ),
     );
   }

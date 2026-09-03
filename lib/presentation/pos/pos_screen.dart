@@ -9,14 +9,13 @@ import '../../providers/stock_provider.dart';
 import 'widgets/product_card.dart';
 import 'widgets/cart_panel.dart';
 
-/// Point of Sale (POS) Billing Screen
+/// Primary Point of Sale (POS) Billing Screen
 class PosScreen extends StatelessWidget {
   const PosScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isMobile = ResponsiveLayout.isMobile(context);
     final stockProvider = context.watch<StockProvider>();
     final posProvider = context.watch<PosProvider>();
@@ -30,17 +29,19 @@ class PosScreen extends StatelessWidget {
           Expanded(
             flex: isMobile ? 1 : 6,
             child: Padding(
-              padding: EdgeInsets.all(isMobile ? 12 : 20),
+              padding: EdgeInsets.all(isMobile ? 10 : 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Top Aquajaal Product Banner
-                  _buildBrandHeader(context),
-                  const SizedBox(height: 14),
+                  // Top Brand Banner (Compact on mobile)
+                  if (!isMobile) ...[
+                    _buildBrandHeader(context),
+                    const SizedBox(height: 12),
+                  ],
 
                   // Search Bar & Category Filters
                   _buildSearchAndFilters(context, stockProvider),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
 
                   // Catalog Grid
                   Expanded(
@@ -49,9 +50,9 @@ class PosScreen extends StatelessWidget {
                         : GridView.builder(
                             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: isMobile ? 2 : (ResponsiveLayout.isTablet(context) ? 2 : 3),
-                              crossAxisSpacing: 14,
-                              mainAxisSpacing: 14,
-                              childAspectRatio: isMobile ? 0.76 : 0.88,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 10,
+                              childAspectRatio: isMobile ? 0.60 : 0.82,
                             ),
                             itemCount: stockProvider.filteredPosProducts.length,
                             itemBuilder: (context, index) {
@@ -162,53 +163,64 @@ class PosScreen extends StatelessWidget {
   }
 
   Widget _buildSearchAndFilters(BuildContext context, StockProvider stockProvider) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isMobile = ResponsiveLayout.isMobile(context);
+
+    final searchField = TextField(
+      onChanged: stockProvider.setSearchQuery,
+      decoration: InputDecoration(
+        hintText: isMobile ? 'Search catalog...' : 'Search Jars or Bottles (e.g. 20L, 1000ml)...',
+        prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 20),
+        suffixIcon: stockProvider.searchQuery.isNotEmpty
+            ? IconButton(
+                onPressed: () => stockProvider.setSearchQuery(''),
+                icon: const Icon(Icons.clear_rounded, size: 18),
+              )
+            : null,
+        contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+        fillColor: isDark ? AppColors.cardDark : Colors.white,
+        isDense: true,
+      ),
+    );
+
+    final filterChips = Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: ['All', '20L Jars', 'Packaged Bottles'].map((cat) {
+        final isSelected = stockProvider.selectedCategory == cat;
+        return FilterChip(
+          label: Text(cat, style: const TextStyle(fontSize: 11)),
+          selected: isSelected,
+          selectedColor: AppColors.primary,
+          checkmarkColor: Colors.white,
+          labelStyle: TextStyle(
+            color: isSelected ? Colors.white : (isDark ? Colors.white : AppColors.textPrimaryLight),
+            fontWeight: FontWeight.bold,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          onSelected: (val) {
+            if (val) stockProvider.setCategory(cat);
+          },
+        );
+      }).toList(),
+    );
+
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          searchField,
+          const SizedBox(height: 6),
+          filterChips,
+        ],
+      );
+    }
 
     return Row(
       children: [
-        // Search Input
-        Expanded(
-          flex: 2,
-          child: TextField(
-            onChanged: stockProvider.setSearchQuery,
-            decoration: InputDecoration(
-              hintText: 'Search Jars or Bottles (e.g. 20L, 1000ml)...',
-              prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary),
-              suffixIcon: stockProvider.searchQuery.isNotEmpty
-                  ? IconButton(
-                      onPressed: () => stockProvider.setSearchQuery(''),
-                      icon: const Icon(Icons.clear_rounded, size: 18),
-                    )
-                  : null,
-              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-              fillColor: isDark ? AppColors.cardDark : Colors.white,
-            ),
-          ),
-        ),
+        Expanded(flex: 2, child: searchField),
         const SizedBox(width: 10),
-
-        // Category Filter Chips
-        ...['All', '20L Jars', 'Packaged Bottles'].map((cat) {
-          final isSelected = stockProvider.selectedCategory == cat;
-          return Padding(
-            padding: const EdgeInsets.only(left: 6),
-            child: FilterChip(
-              label: Text(cat),
-              selected: isSelected,
-              selectedColor: AppColors.primary,
-              checkmarkColor: Colors.white,
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.white : (isDark ? Colors.white : AppColors.textPrimaryLight),
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-              onSelected: (val) {
-                if (val) stockProvider.setCategory(cat);
-              },
-            ),
-          );
-        }),
+        filterChips,
       ],
     );
   }
@@ -230,7 +242,7 @@ class PosScreen extends StatelessWidget {
 
   Widget _buildMobileCartBar(BuildContext context, PosProvider posProvider) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.primary,
         boxShadow: [
@@ -251,14 +263,14 @@ class PosScreen extends StatelessWidget {
               children: [
                 Text(
                   '${posProvider.totalItemCount} Items In Cart',
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  style: const TextStyle(color: Colors.white70, fontSize: 11),
                 ),
                 Text(
                   CurrencyFormatter.format(posProvider.grandTotal),
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
-                    fontSize: 20,
+                    fontSize: 18,
                   ),
                 ),
               ],
@@ -277,12 +289,12 @@ class PosScreen extends StatelessWidget {
                   ),
                 );
               },
-              icon: const Icon(Icons.shopping_cart_checkout_rounded),
-              label: const Text('View Cart & Bill'),
+              icon: const Icon(Icons.shopping_cart_checkout_rounded, size: 18),
+              label: const Text('View Cart & Bill', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accentDark,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
             ),
           ],

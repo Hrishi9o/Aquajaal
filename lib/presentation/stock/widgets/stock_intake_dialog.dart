@@ -4,6 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/app_toast.dart';
 import '../../../data/models/product.dart';
 import '../../../providers/stock_provider.dart';
+import '../../../core/widgets/responsive_text.dart';
 
 /// Modal dialog for recording incoming factory/supplier stock shipments
 class StockIntakeDialog extends StatefulWidget {
@@ -61,13 +62,18 @@ class _StockIntakeDialogState extends State<StockIntakeDialog> {
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Container(
-        width: 460,
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final dialogWidth = constraints.maxWidth * 0.9;
+          return Container(
+            width: dialogWidth < 400 ? dialogWidth : 400, // cap width for large screens
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
+            padding: const EdgeInsets.all(24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
             // Header
             Row(
               children: [
@@ -102,7 +108,7 @@ class _StockIntakeDialogState extends State<StockIntakeDialog> {
               value: _selectedProduct,
               decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
               items: stockProvider.allProducts.map((p) {
-                return DropdownMenuItem(value: p, child: Text(p.name, overflow: TextOverflow.ellipsis));
+                return DropdownMenuItem(value: p, child: ResponsiveText(p.name));
               }).toList(),
               onChanged: (val) {
                 setState(() {
@@ -199,8 +205,11 @@ class _StockIntakeDialogState extends State<StockIntakeDialog> {
               ),
               child: const Text('Add to Inventory', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             ),
-          ],
-        ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

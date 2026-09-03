@@ -16,6 +16,7 @@ class ProductManagementScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final stockProvider = context.watch<StockProvider>();
+    final isMobile = MediaQuery.of(context).size.width < 650;
 
     return Scaffold(
       body: SafeArea(
@@ -23,101 +24,195 @@ class ProductManagementScreen extends StatelessWidget {
           children: [
             // Top Bar
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 14 : 20,
+                vertical: isMobile ? 12 : 16,
+              ),
               decoration: BoxDecoration(
                 color: isDark ? AppColors.surfaceDark : Colors.white,
-                border: Border(bottom: BorderSide(color: isDark ? AppColors.dividerDark : AppColors.dividerLight)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryContainer,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.category_rounded, color: AppColors.primary, size: 22),
+                border: Border(
+                  bottom: BorderSide(
+                    color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+              ),
+              child: isMobile
+                  ? Row(
                       children: [
-                        Text(
-                          'Product Management',
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryContainer,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.category_rounded, color: AppColors.primary, size: 20),
                         ),
-                        Text(
-                          'Manage products, quality variants, pricing, and active status.',
-                          style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textSecondaryLight),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Products (${stockProvider.allProducts.length})',
+                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () => _openAddDialog(context, stockProvider),
+                          icon: const Icon(Icons.add_rounded, color: Colors.white, size: 18),
+                          label: const Text('+ Add', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryContainer,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.category_rounded, color: AppColors.primary, size: 22),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Product Management',
+                                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                'Manage products, quality variants, pricing, and active status.',
+                                style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textSecondaryLight),
+                              ),
+                            ],
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () => _openAddDialog(context, stockProvider),
+                          icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                          label: const Text('Add Product', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: () => _openAddDialog(context, stockProvider),
-                    icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
-                    label: const Text('Add Product', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                ],
-              ),
             ),
 
             // Search and Status Filters
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-              child: Row(
-                children: [
-                  // Search Field
-                  Expanded(
-                    child: TextField(
-                      onChanged: (val) => stockProvider.setSearchQuery(val),
-                      decoration: InputDecoration(
-                        hintText: 'Search products by name or SKU...',
-                        prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                        isDense: true,
-                        filled: true,
-                        fillColor: isDark ? AppColors.cardDark : Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: isDark ? AppColors.dividerDark : AppColors.dividerLight),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: isDark ? AppColors.dividerDark : AppColors.dividerLight),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-
-                  // Filter Chips: Active vs Archived
-                  FilterChip(
-                    label: Text('Active (${stockProvider.activeProducts.length})'),
-                    selected: !stockProvider.showArchivedOnly,
-                    onSelected: (val) => stockProvider.setShowArchivedOnly(false),
-                    selectedColor: AppColors.primaryContainer,
-                    checkmarkColor: AppColors.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  FilterChip(
-                    label: Text('Archived (${stockProvider.archivedProducts.length})'),
-                    selected: stockProvider.showArchivedOnly,
-                    onSelected: (val) => stockProvider.setShowArchivedOnly(true),
-                    selectedColor: AppColors.primaryContainer,
-                    checkmarkColor: AppColors.primary,
-                  ),
-                ],
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 14 : 20,
+                vertical: 10,
               ),
+              color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+              child: isMobile
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Search Field
+                        TextField(
+                          onChanged: (val) => stockProvider.setSearchQuery(val),
+                          decoration: InputDecoration(
+                            hintText: 'Search products by name or SKU...',
+                            prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                            isDense: true,
+                            filled: true,
+                            fillColor: isDark ? AppColors.cardDark : Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: isDark ? AppColors.dividerDark : AppColors.dividerLight),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: isDark ? AppColors.dividerDark : AppColors.dividerLight),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Filter Chips: Active vs Archived
+                        Row(
+                          children: [
+                            ChoiceChip(
+                              label: Text('Active (${stockProvider.activeProducts.length})', style: const TextStyle(fontSize: 12)),
+                              selected: !stockProvider.showArchivedOnly,
+                              onSelected: (val) => stockProvider.setShowArchivedOnly(false),
+                              selectedColor: AppColors.primary,
+                              labelStyle: TextStyle(
+                                color: !stockProvider.showArchivedOnly ? Colors.white : (isDark ? Colors.white : Colors.black87),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ChoiceChip(
+                              label: Text('Archived (${stockProvider.archivedProducts.length})', style: const TextStyle(fontSize: 12)),
+                              selected: stockProvider.showArchivedOnly,
+                              onSelected: (val) => stockProvider.setShowArchivedOnly(true),
+                              selectedColor: AppColors.primary,
+                              labelStyle: TextStyle(
+                                color: stockProvider.showArchivedOnly ? Colors.white : (isDark ? Colors.white : Colors.black87),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        // Search Field
+                        Expanded(
+                          child: TextField(
+                            onChanged: (val) => stockProvider.setSearchQuery(val),
+                            decoration: InputDecoration(
+                              hintText: 'Search products by name or SKU...',
+                              prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                              isDense: true,
+                              filled: true,
+                              fillColor: isDark ? AppColors.cardDark : Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(color: isDark ? AppColors.dividerDark : AppColors.dividerLight),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(color: isDark ? AppColors.dividerDark : AppColors.dividerLight),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+
+                        // Filter Chips: Active vs Archived
+                        FilterChip(
+                          label: Text('Active (${stockProvider.activeProducts.length})'),
+                          selected: !stockProvider.showArchivedOnly,
+                          onSelected: (val) => stockProvider.setShowArchivedOnly(false),
+                          selectedColor: AppColors.primaryContainer,
+                          checkmarkColor: AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        FilterChip(
+                          label: Text('Archived (${stockProvider.archivedProducts.length})'),
+                          selected: stockProvider.showArchivedOnly,
+                          onSelected: (val) => stockProvider.setShowArchivedOnly(true),
+                          selectedColor: AppColors.primaryContainer,
+                          checkmarkColor: AppColors.primary,
+                        ),
+                      ],
+                    ),
             ),
 
-            // Products List / Grid
+            // Products List
             Expanded(
               child: stockProvider.filteredProducts.isEmpty
                   ? Center(
@@ -136,7 +231,7 @@ class ProductManagementScreen extends StatelessWidget {
                       ),
                     )
                   : ListView.separated(
-                      padding: const EdgeInsets.all(20),
+                      padding: EdgeInsets.all(isMobile ? 12 : 20),
                       itemCount: stockProvider.filteredProducts.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
@@ -168,7 +263,7 @@ class ProductManagementScreen extends StatelessWidget {
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -190,7 +285,7 @@ class ProductManagementScreen extends StatelessWidget {
                     size: 22,
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -201,8 +296,11 @@ class ProductManagementScreen extends StatelessWidget {
                             child: Text(
                               product.name,
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
@@ -222,25 +320,24 @@ class ProductManagementScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Row(
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 4,
                         children: [
                           Text(
                             'Category: ${product.category}',
                             style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryLight),
                           ),
-                          const SizedBox(width: 12),
                           Text(
                             'HSN: ${product.hsnCode}',
                             style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryLight),
                           ),
-                          if (product.sku != null && product.sku!.isNotEmpty) ...[
-                            const SizedBox(width: 12),
+                          if (product.sku != null && product.sku!.isNotEmpty)
                             Text(
                               'SKU: ${product.sku}',
                               style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryLight),
                             ),
-                          ],
                         ],
                       ),
                     ],
@@ -253,7 +350,7 @@ class ProductManagementScreen extends StatelessWidget {
             // Variant list or Standalone details
             if (product.hasVariants) ...[
               Wrap(
-                spacing: 12,
+                spacing: 10,
                 runSpacing: 8,
                 children: product.variants.map((v) {
                   return Container(
@@ -298,13 +395,15 @@ class ProductManagementScreen extends StatelessWidget {
                 }).toList(),
               ),
             ] else ...[
-              Row(
+              Wrap(
+                spacing: 14,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(
                     'Price: ${CurrencyFormatter.format(product.standalonePrice ?? 0)}',
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primary),
                   ),
-                  const SizedBox(width: 16),
                   Text(
                     'Stock: ${product.standaloneStock} units',
                     style: TextStyle(
@@ -315,7 +414,6 @@ class ProductManagementScreen extends StatelessWidget {
                           : (product.isLowStock ? AppColors.warning : AppColors.textSecondaryLight),
                     ),
                   ),
-                  const SizedBox(width: 16),
                   Text(
                     'Low threshold: ${product.lowStockThreshold}',
                     style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryLight),

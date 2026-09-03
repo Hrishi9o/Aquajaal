@@ -51,7 +51,7 @@ class _StockAdjustmentDialogState extends State<StockAdjustmentDialog> {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
-        width: 440,
+        width: MediaQuery.of(context).size.width * 0.9, // responsive width up to 90% of screen
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,

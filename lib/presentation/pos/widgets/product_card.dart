@@ -60,6 +60,7 @@ class _ProductCardState extends State<ProductCard> {
 
     return Card(
       elevation: 0,
+      margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
@@ -75,7 +76,7 @@ class _ProductCardState extends State<ProductCard> {
             ? () => _showVariantDialog(context, posProvider)
             : null,
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -84,7 +85,7 @@ class _ProductCardState extends State<ProductCard> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                     decoration: BoxDecoration(
                       color: isDark ? AppColors.cardDarkElevated : AppColors.waterBlueTint,
                       borderRadius: BorderRadius.circular(6),
@@ -92,7 +93,7 @@ class _ProductCardState extends State<ProductCard> {
                     child: Text(
                       widget.product.category,
                       style: const TextStyle(
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: FontWeight.bold,
                         color: AppColors.primary,
                       ),
@@ -108,8 +109,8 @@ class _ProductCardState extends State<ProductCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: 38,
+                    height: 38,
                     decoration: BoxDecoration(
                       color: widget.product.hasVariants
                           ? AppColors.primaryContainer
@@ -121,19 +122,20 @@ class _ProductCardState extends State<ProductCard> {
                           ? Icons.water_drop_rounded
                           : Icons.local_drink_rounded,
                       color: widget.product.hasVariants ? AppColors.primary : AppColors.accentDark,
-                      size: 24,
+                      size: 20,
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           widget.product.name,
-                          style: theme.textTheme.titleSmall?.copyWith(
+                          style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                            height: 1.2,
+                            fontSize: 13,
+                            height: 1.25,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -143,7 +145,7 @@ class _ProductCardState extends State<ProductCard> {
                           widget.product.hasVariants
                               ? '${widget.product.variants.length} jar variants'
                               : 'HSN: ${widget.product.hsnCode}',
-                          style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+                          style: const TextStyle(fontSize: 10, color: AppColors.textSecondaryLight),
                         ),
                       ],
                     ),
@@ -161,19 +163,36 @@ class _ProductCardState extends State<ProductCard> {
                   ),
                   child: Text(
                     '✓ $inCartQty in cart',
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary),
                   ),
                 ),
               ],
 
               const Spacer(),
 
-              // Price Label
-              Text(
-                widget.product.priceDisplay,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.primary,
+              // Price Label Container
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.cardDarkElevated : AppColors.surfaceLight,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Price',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondaryLight),
+                    ),
+                    Text(
+                      widget.product.priceDisplay,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.primary,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 8),
@@ -182,14 +201,15 @@ class _ProductCardState extends State<ProductCard> {
               if (widget.product.hasVariants)
                 SizedBox(
                   width: double.infinity,
+                  height: 42,
                   child: ElevatedButton.icon(
                     onPressed: () => _showVariantDialog(context, posProvider),
                     icon: const Icon(Icons.tune_rounded, size: 16),
-                    label: const Text('Choose Variant & Qty', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    label: const Text('Choose Variant', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      elevation: 1,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
@@ -208,93 +228,99 @@ class _ProductCardState extends State<ProductCard> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          children: [
-            // Method 2: Manual Decrement Button
-            SizedBox(
-              width: 32,
-              height: 32,
-              child: IconButton(
-                onPressed: _cardQty > 1 ? () => _updateCardQty(_cardQty - 1) : null,
-                icon: const Icon(Icons.remove_rounded, size: 16),
-                padding: EdgeInsets.zero,
-                style: IconButton.styleFrom(
-                  backgroundColor: AppColors.primaryContainer,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-
-            // Method 1: Direct Numeric Keyboard Input Field (defaults to 1)
-            Expanded(
-              child: SizedBox(
-                height: 32,
-                child: TextField(
-                  controller: _qtyController,
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
-                  decoration: InputDecoration(
-                    contentPadding: EdgeInsets.zero,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.primary),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.primary, width: 2),
-                    ),
+        // Quantity Stepper Row
+        SizedBox(
+          height: 36,
+          child: Row(
+            children: [
+              // Decrement Button
+              SizedBox(
+                width: 36,
+                height: 36,
+                child: IconButton(
+                  onPressed: _cardQty > 1 ? () => _updateCardQty(_cardQty - 1) : null,
+                  icon: const Icon(Icons.remove_rounded, size: 16),
+                  padding: EdgeInsets.zero,
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.primaryContainer,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  onTap: () => _qtyController.selection = TextSelection(
-                    baseOffset: 0,
-                    extentOffset: _qtyController.text.length,
-                  ),
-                  onChanged: (val) {
-                    final parsed = int.tryParse(val);
-                    if (parsed != null && parsed > 0) {
-                      setState(() => _cardQty = parsed);
-                    }
-                  },
-                  onSubmitted: (_) => _handleAddToCart(posProvider),
                 ),
               ),
-            ),
-            const SizedBox(width: 6),
+              const SizedBox(width: 6),
 
-            // Method 2: Manual Increment Button
-            SizedBox(
-              width: 32,
-              height: 32,
-              child: IconButton(
-                onPressed: () => _updateCardQty(_cardQty + 1),
-                icon: const Icon(Icons.add_rounded, size: 16),
-                padding: EdgeInsets.zero,
-                style: IconButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              // Direct Numeric Input Field
+              Expanded(
+                child: SizedBox(
+                  height: 36,
+                  child: TextField(
+                    controller: _qtyController,
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                    decoration: InputDecoration(
+                      contentPadding: EdgeInsets.zero,
+                      isDense: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.primary),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                      ),
+                    ),
+                    onTap: () => _qtyController.selection = TextSelection(
+                      baseOffset: 0,
+                      extentOffset: _qtyController.text.length,
+                    ),
+                    onChanged: (val) {
+                      final parsed = int.tryParse(val);
+                      if (parsed != null && parsed > 0) {
+                        setState(() => _cardQty = parsed);
+                      }
+                    },
+                    onSubmitted: (_) => _handleAddToCart(posProvider),
+                  ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(width: 6),
+
+              // Increment Button
+              SizedBox(
+                width: 36,
+                height: 36,
+                child: IconButton(
+                  onPressed: () => _updateCardQty(_cardQty + 1),
+                  icon: const Icon(Icons.add_rounded, size: 16),
+                  padding: EdgeInsets.zero,
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 8),
 
-        // Add to Cart Button (Adds entire quantity at once)
+        // Add to Cart Button (Comfortable 42px height)
         SizedBox(
           width: double.infinity,
+          height: 42,
           child: ElevatedButton.icon(
             onPressed: () => _handleAddToCart(posProvider),
             icon: const Icon(Icons.add_shopping_cart_rounded, size: 16),
             label: Text(
               'Add to Cart ($_cardQty)',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              elevation: 1,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           ),
@@ -334,41 +360,41 @@ class _ProductCardState extends State<ProductCard> {
   Widget _buildStockBadge(bool isOut, bool isLow, int stock) {
     if (isOut) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
           color: AppColors.error.withAlpha(30),
           borderRadius: BorderRadius.circular(6),
         ),
         child: const Text(
           'Out of Stock',
-          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.error),
+          style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.error),
         ),
       );
     }
 
     if (isLow) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
           color: AppColors.error.withAlpha(30),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(
-          '⚠ Only $stock left',
-          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.error),
+          '⚠ $stock left',
+          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.error),
         ),
       );
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         color: AppColors.accent.withAlpha(38),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         'Stock: $stock',
-        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.accentDark),
+        style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.accentDark),
       ),
     );
   }

@@ -84,7 +84,7 @@ class _AppScaffoldState extends State<AppScaffold> {
             ],
           ),
           actions: [
-            const CloudSyncIndicator(),
+            const CloudSyncIndicator(compact: true),
             IconButton(
               icon: Icon(themeProvider.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded),
               onPressed: themeProvider.toggleTheme,

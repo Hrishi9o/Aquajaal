@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/invoice.dart';
@@ -25,6 +26,9 @@ class CloudSyncService extends ChangeNotifier {
   SyncStatus _status = SyncStatus.idle;
   SyncStatus get status => _status;
 
+  bool _isResetting = false;
+  bool get isResetting => _isResetting;
+
   String? _lastError;
   String? get lastError => _lastError;
 
@@ -46,16 +50,18 @@ class CloudSyncService extends ChangeNotifier {
   /// Initializes the cloud sync service with saved settings and starts background sync
   Future<void> init() async {
     _cloudUrl = defaultFirebaseUrl;
-    
+
     // Start periodic background sync polling every 30 seconds
     _startPeriodicSync();
 
-    // Perform initial synchronization in background
+    // Fire-and-forget startup sync — silently goes offline if no network
     unawaited(triggerFullSync());
   }
 
   void configure({required String url, required bool autoSync}) {
-    _cloudUrl = url.trim().isEmpty ? defaultFirebaseUrl : url.trim();
+    // Remove stray spaces and ensure trailing slash
+    final cleaned = url.trim().replaceAll(' ', '');
+    _cloudUrl = cleaned.isEmpty ? defaultFirebaseUrl : (cleaned.endsWith('/') ? cleaned : '${cleaned}/');
     _autoSyncEnabled = autoSync;
     notifyListeners();
     if (_autoSyncEnabled && _cloudUrl.isNotEmpty) {
@@ -80,8 +86,10 @@ class CloudSyncService extends ChangeNotifier {
 
   /// Triggers bidirectional sync: pushes local pending records, then pulls remote updates
   Future<bool> triggerFullSync() async {
-    if (_cloudUrl.isEmpty) {
-      _status = SyncStatus.idle;
+    if (_cloudUrl.isEmpty || _isResetting) {
+      if (_cloudUrl.isEmpty) {
+        _status = SyncStatus.idle;
+      }
       notifyListeners();
       return false;
     }
@@ -161,6 +169,19 @@ class CloudSyncService extends ChangeNotifier {
       _status = SyncStatus.synced;
       notifyListeners();
       return true;
+    } on SocketException catch (e) {
+      // Network/DNS failure — treat as offline, not an error state
+      debugPrint('[CloudSync] Offline (network unavailable): $e');
+      _status = SyncStatus.offline;
+      _lastError = 'No internet connection. Data is saved locally and will sync when online.';
+      notifyListeners();
+      return false;
+    } on TimeoutException catch (e) {
+      debugPrint('[CloudSync] Sync timed out: $e');
+      _status = SyncStatus.offline;
+      _lastError = 'Connection timed out. Will retry when network is available.';
+      notifyListeners();
+      return false;
     } catch (e) {
       debugPrint('[CloudSync] Sync failed: $e');
       _status = SyncStatus.error;
@@ -210,6 +231,87 @@ class CloudSyncService extends ChangeNotifier {
     }
   }
 
+  /// Wipes all remote collections in Cloud / Firebase and re-pushes fresh seed data
+  Future<void> resetRemoteData() async {
+    if (_cloudUrl.isEmpty) return;
+    _isResetting = true;
+    _status = SyncStatus.syncing;
+    _lastError = null;
+    notifyListeners();
+
+    try {
+      // 1. Delete remote collections from Firebase RTDB
+      await _deleteEntityCollection('invoices');
+      await _deleteEntityCollection('stock_movements');
+      await _deleteEntityCollection('products');
+
+      // 2. Re-push fresh seed products
+      final localProducts = LocalDbService.instance.getAllProducts();
+      for (final prod in localProducts) {
+        await _pushEntity('products', prod.id, prod.toJson());
+      }
+
+      // 3. Re-push fresh seed stock movements
+      final localStock = LocalDbService.instance.getAllStockMovements();
+      for (final mov in localStock) {
+        await _pushEntity('stock_movements', mov.id, mov.toJson());
+      }
+
+      _lastSyncTime = DateTime.now();
+      _status = SyncStatus.synced;
+      _lastError = null;
+    } on SocketException catch (e) {
+      debugPrint('[CloudSync] Offline while resetting cloud data: $e');
+      _status = SyncStatus.offline;
+      _lastError = 'Offline: Cloud wipe failed, local database reset successfully.';
+    } on TimeoutException catch (e) {
+      debugPrint('[CloudSync] Timeout while resetting cloud data: $e');
+      _status = SyncStatus.offline;
+      _lastError = 'Cloud sync timed out during reset.';
+    } catch (e) {
+      debugPrint('[CloudSync] Error resetting remote data: $e');
+      _status = SyncStatus.error;
+      _lastError = e.toString();
+    } finally {
+      _isResetting = false;
+      notifyListeners();
+    }
+  }
+
+  /// Deletes all invoices from Cloud / Firebase
+  Future<void> clearRemoteInvoices() async {
+    if (_cloudUrl.isEmpty) return;
+    _isResetting = true;
+    _status = SyncStatus.syncing;
+    notifyListeners();
+
+    try {
+      await _deleteEntityCollection('invoices');
+      _lastSyncTime = DateTime.now();
+      _status = SyncStatus.synced;
+      _lastError = null;
+    } catch (e) {
+      debugPrint('[CloudSync] Error clearing remote invoices: $e');
+    } finally {
+      _isResetting = false;
+      notifyListeners();
+    }
+  }
+
+  /// Deletes an individual remote entity by collection and id
+  Future<void> deleteRemoteEntity(String collection, String id) async {
+    if (_cloudUrl.isEmpty) return;
+    try {
+      final url = Uri.parse(_buildUrl(collection, id));
+      await http.delete(
+        url,
+        headers: {'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 8));
+    } catch (e) {
+      debugPrint('[CloudSync] Failed to delete remote entity $collection/$id: $e');
+    }
+  }
+
   // --- REST helpers ---
 
   String _buildUrl(String collection, [String? id]) {
@@ -229,6 +331,22 @@ class CloudSyncService extends ChangeNotifier {
       return '$base/$collection/$id';
     }
     return '$base/$collection';
+  }
+
+  Future<void> _deleteEntityCollection(String collection) async {
+    try {
+      final url = Uri.parse(_buildUrl(collection));
+      final response = await http.delete(
+        url,
+        headers: {'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode >= 400) {
+        debugPrint('[CloudSync] DELETE $collection returned ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('[CloudSync] Error deleting collection $collection: $e');
+    }
   }
 
   Future<void> _pushEntity(String collection, String id, Map<String, dynamic> data) async {

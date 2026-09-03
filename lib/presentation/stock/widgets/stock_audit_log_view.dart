@@ -34,30 +34,27 @@ class _StockAuditLogViewState extends State<StockAuditLogView> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Filter Bar
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Row(
-              children: ['All', 'Intake', 'Sale', 'Adjustment'].map((type) {
-                final isSelected = _typeFilter == type;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text(type),
-                    selected: isSelected,
-                    selectedColor: AppColors.primary,
-                    labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : (isDark ? Colors.white : Colors.black87),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                    onSelected: (val) {
-                      if (val) setState(() => _typeFilter = type);
-                    },
-                  ),
-                );
-              }).toList(),
-            ),
+            ...['All', 'Intake', 'Sale', 'Adjustment'].map((type) {
+              final isSelected = _typeFilter == type;
+              return ChoiceChip(
+                label: Text(type),
+                selected: isSelected,
+                selectedColor: AppColors.primary,
+                labelStyle: TextStyle(
+                  color: isSelected ? Colors.white : (isDark ? Colors.white : Colors.black87),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+                onSelected: (val) {
+                  if (val) setState(() => _typeFilter = type);
+                },
+              );
+            }),
             Text(
               '${movements.length} log records',
               style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryLight),
@@ -107,11 +104,15 @@ class _StockAuditLogViewState extends State<StockAuditLogView> {
                                 children: [
                                   Row(
                                     children: [
-                                      Text(
-                                        m.itemDisplayName,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                      Flexible(
+                                        child: Text(
+                                          m.itemDisplayName,
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
-                                      const SizedBox(width: 8),
+                                      const SizedBox(width: 6),
                                       _buildTypeBadge(m.type),
                                     ],
                                   ),

@@ -85,6 +85,7 @@ class LocalDbService {
 
   Future<void> deleteProduct(String id) async {
     await _productsBox.delete(id);
+    unawaited(CloudSyncService.instance.deleteRemoteEntity('products', id));
   }
 
   // --- Invoices ---
@@ -163,12 +164,22 @@ class LocalDbService {
     return currentSeq;
   }
 
-  /// Factory reset: Clears all data and re-seeds original catalog
+  /// Factory reset: Clears all data locally and in cloud, and re-seeds original catalog
   Future<void> resetToFactoryDefaults() async {
     await _productsBox.clear();
     await _invoicesBox.clear();
     await _stockBox.clear();
     await _settingsBox.clear();
     await _seedInitialData();
+    await saveSettings(StoreSettings());
+    await CloudSyncService.instance.resetRemoteData();
+  }
+
+  /// Clears only invoice history from local and cloud storage, resets sequence to 1
+  Future<void> clearInvoiceHistory() async {
+    await _invoicesBox.clear();
+    final settings = getSettings();
+    await saveSettings(settings.copyWith(nextInvoiceSequence: 1));
+    await CloudSyncService.instance.clearRemoteInvoices();
   }
 }

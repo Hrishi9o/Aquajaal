@@ -142,5 +142,29 @@ void main() {
     final initialDark = themeProvider.isDarkMode;
     themeProvider.toggleTheme();
     expect(themeProvider.isDarkMode, !initialDark);
+
+    // 14. Test Clear Invoice History Only
+    expect(LocalDbService.instance.getAllInvoices().isNotEmpty, true);
+    await LocalDbService.instance.clearInvoiceHistory();
+    salesProvider.refreshInvoices();
+    expect(LocalDbService.instance.getAllInvoices().isEmpty, true);
+    expect(salesProvider.totalInvoicesCount, 0);
+    // Custom product should still exist
+    expect(LocalDbService.instance.getAllProducts().any((p) => p.id == 'prod_custom_dispenser'), true);
+
+    // 15. Test Reset to Factory Defaults
+    await LocalDbService.instance.resetToFactoryDefaults();
+    stockProvider.loadData();
+    salesProvider.refreshInvoices();
+    posProvider.clearCart();
+
+    // Catalog reset to original 5 seed products, custom product removed
+    expect(stockProvider.allProducts.length, 5);
+    expect(stockProvider.findProductById('prod_custom_dispenser'), isNull);
+    expect(stockProvider.findProductById('prod_jar_20l')!.variants.firstWhere((v) => v.name == 'Medium Jar').stock, 180);
+    expect(LocalDbService.instance.getAllInvoices().isEmpty, true);
+    expect(salesProvider.totalInvoicesCount, 0);
+    expect(LocalDbService.instance.getSettings().distributorName, 'YASHODHAR ENTERPRISES');
+    expect(posProvider.totalItemCount, 0);
   });
 }
