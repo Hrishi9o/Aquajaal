@@ -1,6 +1,7 @@
 {
   "version": 2,
-  "outputDirectory": "build/web",
+  "outputDirectory": "public",
+  "cleanUrls": true,
   "routes": [
     {
       "src": "/(.*)",
