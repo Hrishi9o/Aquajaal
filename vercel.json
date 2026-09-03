@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "outputDirectory": "public",
+  "outputDirectory": "build/web",
   "cleanUrls": true,
   "routes": [
     {
